@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# Configuration files with secrets
+config.yaml
+config.local.yaml
+.env
+.env.local
+
+# Logs
+logs/
+*.log
+
+# State files
+state/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# SSH tunnel PID files
+.tunnel.pid
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+*.cache
+
+# Test coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+

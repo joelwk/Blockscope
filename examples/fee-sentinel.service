@@ -1,0 +1,17 @@
+[Unit]
+Description=Blockscope - Bitcoin Fee Monitoring & Event Watching
+After=network.target
+
+[Service]
+Type=simple
+User=your-user
+WorkingDirectory=/path/to/bitcoin
+ExecStart=/path/to/bitcoin/run_fee_sentinel.sh
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+

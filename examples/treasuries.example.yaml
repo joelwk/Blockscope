@@ -1,0 +1,97 @@
+# Example Treasury Addresses Configuration
+# This file demonstrates the structure for famous addresses and clusters
+# Copy this to config/treasuries_public.yaml or similar and customize as needed
+
+# Famous addresses with metadata
+famous_addresses:
+  # Protocol / history "monuments"
+  - id: "genesis_satoshi"
+    label: "Genesis / Satoshi"
+    category: "protocol_monument"
+    addresses:
+      - "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
+    notes: "First 50 BTC coinbase from the genesis block; never spent, still accumulates dust and donations."
+    tags: ["genesis", "satoshi", "monument"]
+
+  - id: "counterparty_burn"
+    label: "Counterparty Proof-of-Burn"
+    category: "burn"
+    addresses:
+      - "1CounterpartyXXXXXXXXXXXXXXXUWLpVr"
+    notes: "Used in 2014 to burn BTC in exchange for XCP; standard example of proof-of-burn."
+    tags: ["burn", "counterparty", "xcp"]
+
+  - id: "bitcoin_eater"
+    label: "Bitcoin Eater Address"
+    category: "burn"
+    addresses:
+      - "1BitcoinEaterAddressDontSendf59kuE"
+    notes: "Classic 'eater' address; coins sent here are effectively gone."
+    tags: ["burn", "eater"]
+
+  - id: "bogus_burn"
+    label: "Extreme Bogus/Burn Address"
+    category: "burn"
+    addresses:
+      - "1111111111111111111114oLvT2"
+    notes: "Smallest possible hash160, used as a canonical 'bogus' / burn address in research."
+    tags: ["burn", "bogus", "research"]
+
+  # Hacks and exchange disasters
+  - id: "mtgox_hack"
+    label: "Mt. Gox Hack Stash"
+    category: "hack"
+    addresses:
+      - "1FeexV6bAHb8ybZjqQMjJrcCrHGW9sb6uF"
+    notes: "Widely analyzed as holding ~75k BTC linked to the Gox theft and never moved."
+    tags: ["hack", "mtgox", "theft"]
+
+  - id: "bitfinex_2016_hack"
+    label: "Bitfinex 2016 Hack Consolidation"
+    category: "hack"
+    addresses:
+      - "bc1qazcm763858nkj2dj986etajv6wquslv8uxwczt"
+    notes: "Research shows ~94.6k BTC (≈79% of the 119,756 BTC stolen) consolidated here; tied to the 2016 Bitfinex hack and later US enforcement actions."
+    tags: ["hack", "bitfinex", "2016"]
+
+  # US Government & seizure treasuries
+  - id: "silk_road_individual_x"
+    label: "Silk Road 'Individual X' Seizure (USG)"
+    category: "USG_seizure"
+    addresses:
+      - "bc1qa5wkgaew2dkv56kfvj49j0av5nml45x9ek9hz6"
+    notes: "Holds coins seized from an unidentified Silk Road hacker ('Individual X'), one of the largest BTC seizures."
+    tags: ["USG", "seizure", "silk_road"]
+
+  - id: "james_zhong_seizure"
+    label: "James Zhong Silk Road Hack Seizure (USG)"
+    category: "USG_seizure"
+    addresses:
+      - "bc1qmxjefnuy06v345v6vhwpwt05dztztmx4g3y7wp"
+    notes: "Consolidation wallet for ~49,825 BTC seized from James Zhong (50,676 BTC total), later partially auctioned by US Marshals."
+    tags: ["USG", "seizure", "silk_road", "james_zhong"]
+
+# Entity-level clusters (for grouping multiple addresses)
+clusters:
+  - id: "usg_treasury"
+    label: "US Government Bitcoin Holdings"
+    category: "USG_seizure"
+    addresses:
+      - "bc1qa5wkgaew2dkv56kfvj49j0av5nml45x9ek9hz6"
+      - "bc1qmxjefnuy06v345v6vhwpwt05dztztmx4g3y7wp"
+    notes: "Aggregated view of US Government Bitcoin seizure addresses. Movements usually correspond to auctions, OTC deals, or internal reshuffles."
+    tags: ["USG", "seizure", "treasury"]
+
+  - id: "major_hacks"
+    label: "Major Exchange Hacks"
+    category: "hack"
+    addresses:
+      - "1FeexV6bAHb8ybZjqQMjJrcCrHGW9sb6uF"
+      - "bc1qazcm763858nkj2dj986etajv6wquslv8uxwczt"
+    notes: "Addresses associated with major exchange hacks (Mt. Gox, Bitfinex)."
+    tags: ["hack", "exchange"]
+
+# Simple addresses list (for backward compatibility or untyped addresses)
+# addresses:
+#   - "bc1q..."
+
