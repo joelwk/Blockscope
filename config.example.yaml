@@ -16,6 +16,16 @@ alerts:
   webhook_url: ""  # Optional webhook URL for alerts
   min_change_secs: 300
 
+spike_detection:
+  enabled: true
+  spike_pct: 35  # % increase over trailing average to trigger alert
+  min_alert_satvb: 15  # Minimum absolute fee to care about spikes
+  cooldown_minutes: 20  # Debounce for spike alerts
+  adjustment_rules:
+    target_sat_vb_floor: 12
+    bump_pct_if_queue_backlog: 20
+    drop_pct_if_clearing_fast: 15
+
 consolidation:
   label: "feesentinel"
   min_utxo_sats: 546
@@ -33,6 +43,14 @@ logging:
     max_bytes: 10485760  # 10MB
     backup_count: 30  # Keep 30 rotated files
     when: "midnight"  # Daily rotation at midnight
+
+structured_output:
+  enabled: false  # When true, write JSONL records for future database rollups
+  base_dir: "logs/structured"  # Directory for JSONL files
+  events_filename: "events.jsonl"  # All blockchain events (treasury, ordinals, covenants, blocks)
+  blocks_filename: "blocks.jsonl"  # Per-block summaries and metrics
+  fee_alerts_filename: "fee_alerts.jsonl"  # Fee bucket change + PSBT alerts
+  fee_snapshots_filename: "fee_snapshots.jsonl"  # Periodic fee snapshots
 
 event_watcher:
   enabled: true  # Set to true to enable event watching

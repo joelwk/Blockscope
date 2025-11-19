@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 from typing import Dict, List, Optional
 from .logging import get_logger
 from .constants import DEFAULT_HTTP_TIMEOUT_SECS
+from .structured_output import StructuredOutputWriter
 
 logger = get_logger(__name__)
 
@@ -19,7 +20,8 @@ class EventEmitter:
         self,
         webhook_urls: List[str] = None,
         retry_attempts: int = 3,
-        retry_backoff_secs: int = 5
+        retry_backoff_secs: int = 5,
+        structured_writer: Optional[StructuredOutputWriter] = None,
     ):
         """
         Initialize event emitter.
@@ -32,6 +34,7 @@ class EventEmitter:
         self.webhook_urls = webhook_urls or []
         self.retry_attempts = retry_attempts
         self.retry_backoff_secs = retry_backoff_secs
+        self._structured_writer = structured_writer
         
         logger.info(f"Initialized event emitter: {len(self.webhook_urls)} endpoints")
 
@@ -86,21 +89,25 @@ class EventEmitter:
         Returns:
             True if at least one endpoint succeeded, False otherwise
         """
-        if not self.webhook_urls:
-            logger.debug(f"No webhook URLs configured, skipping event: {event_type}")
-            return True  # Not an error if no endpoints configured
-        
         payload = {
             "type": event_type,
             "data": data,
             "timestamp": datetime.utcnow().isoformat() + "Z"
         }
-        
+
         if txid:
             payload["txid"] = txid
         if block_height is not None:
             payload["block_height"] = block_height
-        
+
+        # Record structured event payload even if no webhooks are configured
+        if self._structured_writer is not None:
+            self._structured_writer.record_event(payload)
+
+        if not self.webhook_urls:
+            logger.debug(f"No webhook URLs configured, skipping event: {event_type}")
+            return True  # Not an error if no endpoints configured
+
         success_count = 0
         
         for url in self.webhook_urls:
