@@ -5,6 +5,7 @@ Bitcoin fee monitoring and blockchain event tracking with webhook alerts.
 ### What Blockscope does
 
 - **Fee monitoring**: Tracks mempool fee percentiles, classifies them into human-readable buckets (free, normal, busy, peak, etc.), and sends webhook alerts when conditions change.
+- **Spike detection**: Identifies sudden fee surges relative to trailing averages and suggests policy adjustments (e.g., raising fee floors during backlogs).
 - **Event monitoring**: Watches the Bitcoin blockchain for activity you care about (treasury addresses, ordinals, covenants, etc.) and emits structured JSON events.
 - **Service-friendly**: Designed to run continuously (systemd, Docker, cron) with clear logs and safe restart semantics.
 
@@ -67,15 +68,17 @@ See `config.example.yaml` for all available options.
 **Event monitoring (blocks & transactions)**
 
 ```bash
-# Continuous event monitoring
+# Continuous comprehensive monitoring (event + fee monitoring)
 ./run_event_watcher.sh
 
-# One-shot event check
+# One-shot comprehensive check (both event + fee monitoring)
 ./run_event_watcher.sh --once
 
 # Only specific filter set (e.g., treasuries only)
 ./run_event_watcher.sh --event-mode treasury
 ```
+
+**Note**: `run_event_watcher.sh` runs both event monitoring AND fee monitoring concurrently, providing comprehensive coverage. This ensures all structured output files (`events.jsonl`, `blocks.jsonl`, `fee_alerts.jsonl`, `fee_snapshots.jsonl`) are created.
 
 You can also run directly via Python:
 
@@ -100,6 +103,10 @@ All configuration values can be set via **environment variables** (`FS_*`) or **
 - **Alerts (fee monitoring)**
   - `alerts.webhook_url` – Where fee bucket change alerts are sent
   - `alerts.min_change_secs` – Debounce between alerts of the same severity
+- **Spike detection**
+  - `spike_detection.enabled` – Enable/disable spike monitoring
+  - `spike_detection.spike_pct` – % surge over trailing average to trigger alert (default 35%)
+  - `spike_detection.cooldown_minutes` – Debounce between spike alerts
 - **Consolidation (optional)**
   - `consolidation.target_address` – UTXO consolidation target address
   - `consolidation.min_utxo_sats`, `max_inputs`, `min_trigger_satvb`
@@ -107,6 +114,13 @@ All configuration values can be set via **environment variables** (`FS_*`) or **
   - `event_watcher.enabled` – Enable/disable monitoring
   - `event_watcher.filters` – Toggle `treasury`, `ordinals`, `covenants`
   - `event_watcher.events.webhook_url` – Where event JSON is sent
+- **Structured output (JSONL logging)**
+  - `structured_output.enabled` – Enable/disable JSONL file logging
+  - `structured_output.base_dir` – Directory for JSONL files (default: `logs/structured`)
+  - `structured_output.events_filename` – Filename for blockchain events
+  - `structured_output.blocks_filename` – Filename for block summaries
+  - `structured_output.fee_alerts_filename` – Filename for fee alerts (fee monitoring only)
+  - `structured_output.fee_snapshots_filename` – Filename for fee snapshots (fee monitoring only)
 
 For more detailed examples, see:
 
@@ -147,10 +161,51 @@ Options:
 ### Webhooks & events (high level)
 
 - **Fee alerts**: Sent when the current fee bucket changes (e.g., `normal → busy`).
+- **Spike alerts**: Sent when fees jump significantly over the trailing average. Includes a "policy adjustment suggestion" (e.g., bump target floor).
 - **Event payloads**: JSON describing the event type (treasury movement, ordinal inscription, covenant flow, block/reorg, etc.) plus basic metadata.
 - **Retry logic**: Event webhooks are retried a configurable number of times on transient failures.
 
 Inspect the `feesentinel/alerts.py`, `feesentinel/event_emitter.py`, and `feesentinel/event_runner.py` modules for the exact payload formats and retry logic.
+
+---
+
+### Structured output (JSONL logging)
+
+When `structured_output.enabled` is `true` in your config, Blockscope writes all events and metrics to JSONL files in `logs/structured/` (or your configured `base_dir`). These files can be ingested into databases or analytical tools for historical analysis.
+
+**Files created:**
+
+- **`events.jsonl`**: All blockchain events (treasury movements, ordinal inscriptions, covenant flows, block confirmations, reorgs). One JSON object per line with `type`, `data`, `timestamp`, and optional `txid`/`block_height` fields.
+- **`blocks.jsonl`**: Per-block summaries with transaction counts, events emitted, and cumulative metrics. Written after each block is processed.
+- **`fee_alerts.jsonl`**: Fee bucket change alerts and PSBT preparation events. Only created when fee monitoring runs.
+- **`fee_snapshots.jsonl`**: Periodic fee snapshots with rolling statistics. Written on each fee monitoring iteration. Only created when fee monitoring runs.
+
+**Event types in `events.jsonl`:**
+
+- `treasury_utxo_spent` / `treasury_utxo_received` / `treasury_utxo_both` – Treasury address activity
+- `ordinal_inscription` – Ordinal inscription detected
+- `covenant_flow` – Covenant pattern detected (e.g., OP_CHECKTEMPLATEVERIFY)
+- `block_confirmed` – New block confirmed
+- `reorg_detected` – Chain reorganization detected
+
+**Configuration:**
+
+```yaml
+structured_output:
+  enabled: true  # Enable JSONL logging
+  base_dir: "logs/structured"
+  events_filename: "events.jsonl"
+  blocks_filename: "blocks.jsonl"
+  fee_alerts_filename: "fee_alerts.jsonl"
+  fee_snapshots_filename: "fee_snapshots.jsonl"
+```
+
+**When files are created:**
+
+- `events.jsonl` and `blocks.jsonl`: Created when event monitoring runs (`--watch-events` or `run_event_watcher.sh`)
+- `fee_alerts.jsonl` and `fee_snapshots.jsonl`: Created when fee monitoring runs (`python -m feesentinel` or `run_event_watcher.sh`)
+
+**Note**: When using `run_event_watcher.sh` (or `python -m feesentinel --watch-events`), both event monitoring and fee monitoring run concurrently, so all 4 files are created. If you run fee monitoring separately (`python -m feesentinel` without `--watch-events`), only the fee monitoring files are created.
 
 ---
 

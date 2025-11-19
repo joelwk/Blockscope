@@ -13,6 +13,7 @@ from .state_manager import StateManager
 from .treasury_registry import load_treasury_registry
 from .config import Config
 from .logging import get_logger
+from .structured_output import StructuredOutputWriter
 
 logger = get_logger(__name__)
 
@@ -20,7 +21,7 @@ logger = get_logger(__name__)
 class EventWatcherRunner:
     """Main runner for event monitoring service."""
 
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, structured_writer: Optional[StructuredOutputWriter] = None):
         """
         Initialize event monitoring runner.
 
@@ -28,6 +29,7 @@ class EventWatcherRunner:
             config: Configuration instance
         """
         self.config = config
+        self._structured_writer = structured_writer
         
         # Initialize RPC client
         self.rpc_client = RPCClient(
@@ -91,7 +93,8 @@ class EventWatcherRunner:
         self.event_emitter = EventEmitter(
             webhook_urls=webhook_urls,
             retry_attempts=events_config.get("retry_attempts", 3),
-            retry_backoff_secs=events_config.get("retry_backoff_secs", 5)
+            retry_backoff_secs=events_config.get("retry_backoff_secs", 5),
+            structured_writer=self._structured_writer,
         )
         
         # Metrics
@@ -182,14 +185,28 @@ class EventWatcherRunner:
         
         self.metrics["blocks_processed"] += 1
         self.metrics["events_emitted"] += events_emitted
-        
+
         if reorg:
             self.metrics["reorgs_detected"] += 1
-        
+
         logger.info(
             f"Block {height} processed: {len(txids)} transactions, "
             f"{events_emitted} events emitted"
         )
+
+        # Optionally record a structured per-block summary for future rollups
+        if self._structured_writer is not None:
+            block_summary = {
+                "type": "block_summary",
+                "height": height,
+                "block_hash": block_hash,
+                "reorg": reorg,
+                "tx_count": len(txids),
+                "events_emitted": events_emitted,
+                "metrics": self.metrics.copy(),
+                "timestamp": datetime.utcnow().isoformat() + "Z",
+            }
+            self._structured_writer.record_block_summary(block_summary)
 
     def run_once(self) -> Dict:
         """

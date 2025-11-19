@@ -91,6 +91,17 @@ class Config:
                 "webhook_url": "",
                 "min_change_secs": 300
             },
+            "spike_detection": {
+                "enabled": True,
+                "spike_pct": 35,
+                "min_alert_satvb": 15,
+                "cooldown_minutes": 20,
+                "adjustment_rules": {
+                    "target_sat_vb_floor": 12,
+                    "bump_pct_if_queue_backlog": 20,
+                    "drop_pct_if_clearing_fast": 15
+                }
+            },
             "consolidation": {
                 "label": "feesentinel",
                 "min_utxo_sats": 546,
@@ -150,6 +161,14 @@ class Config:
                     "enabled": True,
                     "log_interval_secs": 300
                 }
+            },
+            "structured_output": {
+                "enabled": False,
+                "base_dir": "logs/structured",
+                "events_filename": "events.jsonl",
+                "blocks_filename": "blocks.jsonl",
+                "fee_alerts_filename": "fee_alerts.jsonl",
+                "fee_snapshots_filename": "fee_snapshots.jsonl",
             }
         }
         with open(path, 'w') as f:
@@ -176,6 +195,16 @@ class Config:
             self._raw.setdefault("alerts", {})["webhook_url"] = os.getenv("FS_ALERT_WEBHOOK")
         if os.getenv("FS_ALERT_MIN_CHANGE_SECS"):
             self._raw.setdefault("alerts", {})["min_change_secs"] = int(os.getenv("FS_ALERT_MIN_CHANGE_SECS"))
+        
+        # Spike detection settings
+        if os.getenv("FS_SPIKE_ENABLED"):
+            self._raw.setdefault("spike_detection", {})["enabled"] = os.getenv("FS_SPIKE_ENABLED").lower() == "true"
+        if os.getenv("FS_SPIKE_PCT"):
+            self._raw.setdefault("spike_detection", {})["spike_pct"] = int(os.getenv("FS_SPIKE_PCT"))
+        if os.getenv("FS_SPIKE_MIN_ALERT_SATVB"):
+            self._raw.setdefault("spike_detection", {})["min_alert_satvb"] = int(os.getenv("FS_SPIKE_MIN_ALERT_SATVB"))
+        if os.getenv("FS_SPIKE_COOLDOWN_MINS"):
+            self._raw.setdefault("spike_detection", {})["cooldown_minutes"] = int(os.getenv("FS_SPIKE_COOLDOWN_MINS"))
         
         # Consolidation settings
         if os.getenv("FS_CONSOLIDATE_LABEL"):
@@ -232,6 +261,22 @@ class Config:
         return int(self._raw.get("alerts", {}).get("min_change_secs", 300))
     
     @property
+    def spike_detection_config(self) -> Dict[str, Any]:
+        """Get spike detection configuration."""
+        cfg = self._raw.get("spike_detection", {})
+        return {
+            "enabled": cfg.get("enabled", True),
+            "spike_pct": int(cfg.get("spike_pct", 35)),
+            "min_alert_satvb": int(cfg.get("min_alert_satvb", 15)),
+            "cooldown_minutes": int(cfg.get("cooldown_minutes", 20)),
+            "adjustment_rules": {
+                "target_sat_vb_floor": int(cfg.get("adjustment_rules", {}).get("target_sat_vb_floor", 12)),
+                "bump_pct_if_queue_backlog": int(cfg.get("adjustment_rules", {}).get("bump_pct_if_queue_backlog", 20)),
+                "drop_pct_if_clearing_fast": int(cfg.get("adjustment_rules", {}).get("drop_pct_if_clearing_fast", 15))
+            }
+        }
+
+    @property
     def consolidate_label(self) -> str:
         return self._raw.get("consolidation", {}).get("label", "feesentinel")
     
@@ -279,6 +324,23 @@ class Config:
             "max_bytes": rotation.get("max_bytes", 10485760),  # 10MB
             "backup_count": rotation.get("backup_count", 30),
             "when": rotation.get("when", "midnight")
+        }
+
+    @property
+    def structured_output_config(self) -> Dict[str, Any]:
+        """Get structured output configuration with defaults.
+
+        This controls JSONL files that can later be rolled into database tables.
+        """
+        cfg = self._raw.get("structured_output", {})
+        base_dir = cfg.get("base_dir", str(Path(self.log_dir) / "structured"))
+        return {
+            "enabled": cfg.get("enabled", False),
+            "base_dir": base_dir,
+            "events_filename": cfg.get("events_filename", "events.jsonl"),
+            "blocks_filename": cfg.get("blocks_filename", "blocks.jsonl"),
+            "fee_alerts_filename": cfg.get("fee_alerts_filename", "fee_alerts.jsonl"),
+            "fee_snapshots_filename": cfg.get("fee_snapshots_filename", "fee_snapshots.jsonl"),
         }
 
     @property

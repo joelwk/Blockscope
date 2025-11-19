@@ -25,20 +25,20 @@ def test_maybe_alert_quiet_period():
     
     # First alert should fire
     manager.maybe_alert(bucket1, {"p50": 2})
-    assert manager._last_alert["bucket_name"] == "cheap"
-    assert manager._last_alert["severity"] == 2
+    assert manager._last_bucket_alert["bucket_name"] == "cheap"
+    assert manager._last_bucket_alert["severity"] == 2
     
     # Same bucket immediately should not fire (same severity, no change)
-    initial_ts = manager._last_alert["ts"]
+    initial_ts = manager._last_bucket_alert["ts"]
     manager.maybe_alert(bucket1, {"p50": 2})
     # Bucket should still be cheap since severity didn't change
-    assert manager._last_alert["bucket_name"] == "cheap"
-    assert manager._last_alert["severity"] == 2
+    assert manager._last_bucket_alert["bucket_name"] == "cheap"
+    assert manager._last_bucket_alert["severity"] == 2
     
     # Different bucket (different severity) should fire
     manager.maybe_alert(bucket2, {"p50": 10})
-    assert manager._last_alert["bucket_name"] == "normal"
-    assert manager._last_alert["severity"] == 3
+    assert manager._last_bucket_alert["bucket_name"] == "normal"
+    assert manager._last_bucket_alert["severity"] == 3
 
 
 def test_maybe_alert_same_severity_no_alert():
@@ -50,7 +50,7 @@ def test_maybe_alert_same_severity_no_alert():
     # changing within same bucket doesn't trigger (but that's handled by quiet period)
     bucket = classify_fee_bucket(3)  # cheap
     manager.maybe_alert(bucket, {"p50": 3})
-    initial_ts = manager._last_alert["ts"]
+    initial_ts = manager._last_bucket_alert["ts"]
     
     # Same bucket again immediately - should not fire due to quiet period
     manager.maybe_alert(bucket, {"p50": 3})
