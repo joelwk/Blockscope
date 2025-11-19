@@ -93,13 +93,12 @@ def main():
     # Check if event monitoring mode is enabled
     if args.watch_events or config.event_watcher_config.get("enabled"):
         # Event monitoring mode (can run alongside fee monitoring)
-        event_config = config.event_watcher_config
 
         # Override filter settings based on --event-mode
         if args.event_mode != "all":
-            event_config["filters"]["treasury"]["enabled"] = (args.event_mode == "treasury")                                                                    
-            event_config["filters"]["ordinals"]["enabled"] = (args.event_mode == "ordinals")                                                                    
-            event_config["filters"]["covenants"]["enabled"] = (args.event_mode == "covenants")                                                                  
+            config.set_event_filter_mode(args.event_mode)
+
+        event_config = config.event_watcher_config
 
         event_runner = EventWatcherRunner(config, structured_writer=structured_writer)
         

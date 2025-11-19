@@ -343,6 +343,14 @@ class Config:
             "fee_snapshots_filename": cfg.get("fee_snapshots_filename", "fee_snapshots.jsonl"),
         }
 
+    def set_event_filter_mode(self, mode: str) -> None:
+        """Persist CLI overrides for event filter modes."""
+        event_cfg = self._raw.setdefault("event_watcher", {})
+        filters = event_cfg.setdefault("filters", {})
+        for filter_name in ("treasury", "ordinals", "covenants"):
+            filter_cfg = filters.setdefault(filter_name, {})
+            filter_cfg["enabled"] = (filter_name == mode)
+
     @property
     def event_watcher_config(self) -> Dict[str, Any]:
         """Get event monitoring configuration with defaults."""
