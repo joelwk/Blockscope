@@ -5,7 +5,7 @@ import time
 import requests
 from typing import Dict, Optional
 from datetime import datetime
-from .rpc import RPCClient
+from .rpc import RPCClient, PrunedBlockError
 from .block_monitor import BlockMonitor
 from .transaction_filter import TransactionFilter
 from .event_emitter import EventEmitter
@@ -118,6 +118,9 @@ class EventWatcherRunner:
             height: Block height
             block_hash: Block hash
             reorg: Whether this is a reorg recovery
+            
+        Raises:
+            PrunedBlockError: If block is pruned and not available
         """
         logger.info(f"Processing block {height} ({block_hash[:16]}...)")
         
@@ -269,6 +272,17 @@ class EventWatcherRunner:
                 logger.info("Exiting event monitoring")
                 self.state_manager.close()
                 sys.exit(0)
+            except PrunedBlockError as e:
+                logger.warning(
+                    f"Pruned block encountered (height: {e.height}, hash: {e.block_hash}). "
+                    f"Resetting state to current chain tip..."
+                )
+                # Reset state to current height
+                current_height = self.block_monitor.get_current_height()
+                logger.info(f"Resetting state to current height {current_height}")
+                self.state_manager.rollback_from_height(0)  # Clear all blocks
+                # Next iteration will start from current height
+                time.sleep(poll_interval_secs)
             except (requests.exceptions.ConnectionError, requests.exceptions.RequestException) as e:
                 logger.warning(
                     f"Connection error (RPC endpoint may not be ready): {e}. "
